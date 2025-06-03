@@ -7,9 +7,10 @@ import { BookCard } from "@/components/BookCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Download } from "lucide-react";
+import { RotateCcw, Download, Undo, Redo } from "lucide-react";
 import * as fabric from "fabric";
 import { useToast } from "@/hooks/use-toast";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 export type FaceType = "front-left" | "back-left" | "front-right" | "back-right";
 
@@ -30,6 +31,24 @@ const Index = () => {
   const [isExporting, setIsExporting] = useState(false);
   const cameraRef = useRef();
   const { toast } = useToast();
+
+  // Undo/Redo for canvas states
+  const {
+    state: canvasHistory,
+    set: saveCanvasState,
+    undo: undoCanvas,
+    redo: redoCanvas,
+    canUndo,
+    canRedo,
+  } = useUndoRedo<string | null>(null);
+
+  // Save canvas state for undo/redo
+  const handleCanvasChange = () => {
+    if (fabricCanvas) {
+      const canvasState = JSON.stringify(fabricCanvas.toJSON());
+      saveCanvasState(canvasState);
+    }
+  };
 
   // Update texture when canvas changes
   useEffect(() => {
@@ -52,21 +71,21 @@ const Index = () => {
 
       // Listen for canvas changes
       fabricCanvas.on('after:render', updateTexture);
-      fabricCanvas.on('object:added', updateTexture);
-      fabricCanvas.on('object:removed', updateTexture);
-      fabricCanvas.on('object:modified', updateTexture);
+      fabricCanvas.on('object:added', handleCanvasChange);
+      fabricCanvas.on('object:removed', handleCanvasChange);
+      fabricCanvas.on('object:modified', handleCanvasChange);
 
       // Initial texture generation
       updateTexture();
 
       return () => {
         fabricCanvas.off('after:render', updateTexture);
-        fabricCanvas.off('object:added', updateTexture);
-        fabricCanvas.off('object:removed', updateTexture);
-        fabricCanvas.off('object:modified', updateTexture);
+        fabricCanvas.off('object:added', handleCanvasChange);
+        fabricCanvas.off('object:removed', handleCanvasChange);
+        fabricCanvas.off('object:modified', handleCanvasChange);
       };
     }
-  }, [fabricCanvas, selectedFace]);
+  }, [fabricCanvas, selectedFace, saveCanvasState]);
 
   // Switch canvas when face changes
   useEffect(() => {
@@ -83,6 +102,36 @@ const Index = () => {
       title: "Face Selected",
       description: `Now editing ${face.replace('-', ' ')} face`,
     });
+  };
+
+  const handleUndo = () => {
+    if (fabricCanvas && canUndo) {
+      undoCanvas();
+      if (canvasHistory) {
+        fabricCanvas.loadFromJSON(canvasHistory, () => {
+          fabricCanvas.renderAll();
+        });
+      }
+      toast({
+        title: "Undo",
+        description: "Canvas state restored",
+      });
+    }
+  };
+
+  const handleRedo = () => {
+    if (fabricCanvas && canRedo) {
+      redoCanvas();
+      if (canvasHistory) {
+        fabricCanvas.loadFromJSON(canvasHistory, () => {
+          fabricCanvas.renderAll();
+        });
+      }
+      toast({
+        title: "Redo",
+        description: "Canvas state restored",
+      });
+    }
   };
 
   const resetCamera = () => {
@@ -161,6 +210,24 @@ const Index = () => {
                 </p>
               </div>
               <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleUndo}
+                  disabled={!canUndo}
+                >
+                  <Undo className="h-4 w-4 mr-2" />
+                  Undo
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRedo}
+                  disabled={!canRedo}
+                >
+                  <Redo className="h-4 w-4 mr-2" />
+                  Redo
+                </Button>
                 <Button variant="outline" size="sm" onClick={resetCamera}>
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Reset View

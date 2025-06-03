@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
@@ -15,6 +16,7 @@ export function BookCard({ selectedFace, onFaceSelect, faceTextures }: BookCardP
   const leftPageRef = useRef<THREE.Group>(null);
   const rightPageRef = useRef<THREE.Group>(null);
   const [hoveredFace, setHoveredFace] = useState<FaceType | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
   
   // Create textures from data URLs
   const textures = useRef<Record<FaceType, THREE.Texture | null>>({
@@ -35,10 +37,28 @@ export function BookCard({ selectedFace, onFaceSelect, faceTextures }: BookCardP
     });
   }, [faceTextures]);
 
-  // Gentle rotation animation
+  // Animation for folding/unfolding pages
   useFrame((state) => {
     if (groupRef.current) {
       groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
+    }
+
+    // Animate page opening/closing based on selected face
+    if (leftPageRef.current && rightPageRef.current) {
+      const targetLeftRotation = selectedFace.includes("left") ? Math.PI * 0.15 : 0;
+      const targetRightRotation = selectedFace.includes("right") ? -Math.PI * 0.15 : 0;
+      
+      leftPageRef.current.rotation.y = THREE.MathUtils.lerp(
+        leftPageRef.current.rotation.y,
+        targetLeftRotation,
+        0.1
+      );
+      
+      rightPageRef.current.rotation.y = THREE.MathUtils.lerp(
+        rightPageRef.current.rotation.y,
+        targetRightRotation,
+        0.1
+      );
     }
   });
 
@@ -54,13 +74,15 @@ export function BookCard({ selectedFace, onFaceSelect, faceTextures }: BookCardP
       color: texture ? "#ffffff" : baseColor,
       roughness: 0.3,
       metalness: 0.1,
-      emissive: isSelected ? "#1e40af" : isHovered ? "#2563eb" : "#000000",
+      emissive: isSelected ? new THREE.Color("#1e40af") : isHovered ? new THREE.Color("#2563eb") : new THREE.Color("#000000"),
       emissiveIntensity: isSelected ? 0.1 : isHovered ? 0.05 : 0,
     });
   };
 
   const handleFaceClick = (face: FaceType) => {
+    setIsAnimating(true);
     onFaceSelect(face);
+    setTimeout(() => setIsAnimating(false), 500);
   };
 
   // Card dimensions (realistic book proportions)
@@ -84,7 +106,6 @@ export function BookCard({ selectedFace, onFaceSelect, faceTextures }: BookCardP
         >
           <boxGeometry args={[cardWidth / 2, cardHeight, pageThickness]} />
           <primitive object={createFaceMaterial("front-left")} attach="material-4" />
-          {/* Other faces with neutral material */}
           <meshStandardMaterial attach="material-0" color="#f8f9fa" roughness={0.8} />
           <meshStandardMaterial attach="material-1" color="#f8f9fa" roughness={0.8} />
           <meshStandardMaterial attach="material-2" color="#f8f9fa" roughness={0.8} />

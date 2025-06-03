@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -32,7 +31,6 @@ export function EditorPanel({
   setFabricCanvas,
 }: EditorPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedObject, setSelectedObject] = useState<fabric.Object | null>(
     null
   );
