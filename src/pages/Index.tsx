@@ -47,13 +47,14 @@ const Index = () => {
     if (fabricCanvas) {
       const canvasState = JSON.stringify(fabricCanvas.toJSON());
       saveCanvasState(canvasState);
+      updateTexture();
     }
   };
 
   // Update texture when canvas changes
-  useEffect(() => {
+  const updateTexture = () => {
     if (fabricCanvas) {
-      const updateTexture = () => {
+      try {
         const dataURL = fabricCanvas.toDataURL({
           format: 'png',
           quality: 1,
@@ -67,10 +68,15 @@ const Index = () => {
             texture: dataURL
           }
         }));
-      };
+      } catch (error) {
+        console.error('Error generating texture:', error);
+      }
+    }
+  };
 
-      // Listen for canvas changes
-      fabricCanvas.on('after:render', updateTexture);
+  useEffect(() => {
+    if (fabricCanvas) {
+      // Only listen for actual changes, not renders
       fabricCanvas.on('object:added', handleCanvasChange);
       fabricCanvas.on('object:removed', handleCanvasChange);
       fabricCanvas.on('object:modified', handleCanvasChange);
@@ -79,7 +85,6 @@ const Index = () => {
       updateTexture();
 
       return () => {
-        fabricCanvas.off('after:render', updateTexture);
         fabricCanvas.off('object:added', handleCanvasChange);
         fabricCanvas.off('object:removed', handleCanvasChange);
         fabricCanvas.off('object:modified', handleCanvasChange);
@@ -110,6 +115,7 @@ const Index = () => {
       if (canvasHistory) {
         fabricCanvas.loadFromJSON(canvasHistory, () => {
           fabricCanvas.renderAll();
+          updateTexture();
         });
       }
       toast({
@@ -125,6 +131,7 @@ const Index = () => {
       if (canvasHistory) {
         fabricCanvas.loadFromJSON(canvasHistory, () => {
           fabricCanvas.renderAll();
+          updateTexture();
         });
       }
       toast({
