@@ -47,18 +47,19 @@ const Index = () => {
     if (fabricCanvas) {
       const canvasState = JSON.stringify(fabricCanvas.toJSON());
       saveCanvasState(canvasState);
+      // Immediate texture update for real-time preview
       updateTexture();
     }
   };
 
-  // Update texture when canvas changes
+  // Update texture when canvas changes - optimized for real-time updates
   const updateTexture = () => {
     if (fabricCanvas) {
       try {
         const dataURL = fabricCanvas.toDataURL({
           format: 'png',
-          quality: 1,
-          multiplier: 2,
+          quality: 0.9, // Slightly reduced quality for performance
+          multiplier: 1.5, // Good balance between quality and performance
         });
         
         setFaceData(prev => ({
@@ -76,10 +77,14 @@ const Index = () => {
 
   useEffect(() => {
     if (fabricCanvas) {
-      // Only listen for actual changes, not renders
+      // Listen for real-time changes
       fabricCanvas.on('object:added', handleCanvasChange);
       fabricCanvas.on('object:removed', handleCanvasChange);
       fabricCanvas.on('object:modified', handleCanvasChange);
+      fabricCanvas.on('path:created', handleCanvasChange); // For drawing
+      fabricCanvas.on('object:moving', updateTexture); // Real-time during movement
+      fabricCanvas.on('object:scaling', updateTexture); // Real-time during scaling
+      fabricCanvas.on('object:rotating', updateTexture); // Real-time during rotation
 
       // Initial texture generation
       updateTexture();
@@ -88,6 +93,10 @@ const Index = () => {
         fabricCanvas.off('object:added', handleCanvasChange);
         fabricCanvas.off('object:removed', handleCanvasChange);
         fabricCanvas.off('object:modified', handleCanvasChange);
+        fabricCanvas.off('path:created', handleCanvasChange);
+        fabricCanvas.off('object:moving', updateTexture);
+        fabricCanvas.off('object:scaling', updateTexture);
+        fabricCanvas.off('object:rotating', updateTexture);
       };
     }
   }, [fabricCanvas, selectedFace, saveCanvasState]);
@@ -213,7 +222,7 @@ const Index = () => {
               <div>
                 <CardTitle>3D Preview</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Click on any face to edit it
+                  Click on any face to edit it • Real-time updates
                 </p>
               </div>
               <div className="flex gap-2">
@@ -259,16 +268,16 @@ const Index = () => {
                     fov={60}
                   />
                   
-                  {/* Lighting */}
-                  <ambientLight intensity={0.4} />
+                  {/* Enhanced lighting for better material appearance */}
+                  <ambientLight intensity={0.6} />
                   <directionalLight
                     position={[10, 10, 5]}
-                    intensity={1}
+                    intensity={1.2}
                     castShadow
                     shadow-mapSize-width={2048}
                     shadow-mapSize-height={2048}
                   />
-                  <pointLight position={[-10, -10, -10]} intensity={0.5} />
+                  <pointLight position={[-10, -10, -10]} intensity={0.3} />
                   
                   {/* Environment */}
                   <Environment preset="studio" />
@@ -293,6 +302,8 @@ const Index = () => {
                     minDistance={3}
                     maxDistance={15}
                     autoRotate={false}
+                    dampingFactor={0.05}
+                    enableDamping={true}
                   />
                   
                   {/* Ground plane for shadows */}

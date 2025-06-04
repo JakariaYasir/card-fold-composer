@@ -37,28 +37,42 @@ export function BookCard({ selectedFace, onFaceSelect, faceTextures }: BookCardP
     });
   }, [faceTextures]);
 
-  // Animation for folding/unfolding pages
-  useFrame((state) => {
+  // Enhanced animation for folding/unfolding pages
+  useFrame((state, delta) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
+      // Gentle floating animation
+      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.05;
+      groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.02;
     }
 
-    // Animate page opening/closing based on selected face
+    // Smooth page opening/closing animation
     if (leftPageRef.current && rightPageRef.current) {
-      const targetLeftRotation = selectedFace.includes("left") ? Math.PI * 0.15 : 0;
-      const targetRightRotation = selectedFace.includes("right") ? -Math.PI * 0.15 : 0;
+      const speed = 4; // Animation speed
+      const maxRotation = Math.PI * 0.2; // Maximum opening angle
       
+      // Determine target rotations based on selected face
+      const targetLeftRotation = selectedFace.includes("left") ? maxRotation : 0;
+      const targetRightRotation = selectedFace.includes("right") ? -maxRotation : 0;
+      
+      // Smooth interpolation with easing
       leftPageRef.current.rotation.y = THREE.MathUtils.lerp(
         leftPageRef.current.rotation.y,
         targetLeftRotation,
-        0.1
+        delta * speed
       );
       
       rightPageRef.current.rotation.y = THREE.MathUtils.lerp(
         rightPageRef.current.rotation.y,
         targetRightRotation,
-        0.1
+        delta * speed
       );
+
+      // Add subtle scale animation when opening
+      const leftScale = 1 + Math.abs(leftPageRef.current.rotation.y) * 0.02;
+      const rightScale = 1 + Math.abs(rightPageRef.current.rotation.y) * 0.02;
+      
+      leftPageRef.current.scale.setScalar(leftScale);
+      rightPageRef.current.scale.setScalar(rightScale);
     }
   });
 
@@ -72,24 +86,24 @@ export function BookCard({ selectedFace, onFaceSelect, faceTextures }: BookCardP
     return new THREE.MeshStandardMaterial({
       map: texture,
       color: texture ? "#ffffff" : baseColor,
-      roughness: 0.3,
-      metalness: 0.1,
+      roughness: 0.2,
+      metalness: 0.05,
       emissive: isSelected ? new THREE.Color("#1e40af") : isHovered ? new THREE.Color("#2563eb") : new THREE.Color("#000000"),
-      emissiveIntensity: isSelected ? 0.1 : isHovered ? 0.05 : 0,
+      emissiveIntensity: isSelected ? 0.15 : isHovered ? 0.08 : 0,
     });
   };
 
   const handleFaceClick = (face: FaceType) => {
     setIsAnimating(true);
     onFaceSelect(face);
-    setTimeout(() => setIsAnimating(false), 500);
+    setTimeout(() => setIsAnimating(false), 800);
   };
 
-  // Card dimensions (realistic book proportions)
+  // Card dimensions (realistic proportions)
   const cardWidth = 2.5;
   const cardHeight = 3.5;
   const cardThickness = 0.1;
-  const pageThickness = 0.05;
+  const pageThickness = 0.08;
 
   return (
     <group ref={groupRef} position={[0, 0, 0]}>
@@ -205,7 +219,7 @@ export function BookCard({ selectedFace, onFaceSelect, faceTextures }: BookCardP
         <meshStandardMaterial color="#8b5a3c" roughness={0.7} metalness={0.1} />
       </mesh>
 
-      {/* Selection indicator */}
+      {/* Enhanced selection indicator */}
       {hoveredFace && (
         <mesh
           position={[
@@ -218,7 +232,7 @@ export function BookCard({ selectedFace, onFaceSelect, faceTextures }: BookCardP
           <meshStandardMaterial 
             color="#fbbf24" 
             emissive="#f59e0b" 
-            emissiveIntensity={0.5} 
+            emissiveIntensity={0.8} 
           />
         </mesh>
       )}

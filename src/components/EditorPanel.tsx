@@ -41,9 +41,9 @@ export function EditorPanel({
 
   useEffect(() => {
     if (canvasRef.current && !fabricCanvas) {
-      // Canvas dimensions optimized for card faces (3:4 aspect ratio)
-      const width = 600;
-      const height = 800;
+      // Canvas dimensions optimized for card faces (3:4 aspect ratio like real cards)
+      const width = 375; // Card width
+      const height = 525; // Card height (3:4 ratio)
 
       const canvas = new fabric.Canvas(canvasRef.current, {
         width,
@@ -55,7 +55,7 @@ export function EditorPanel({
 
       // Add subtle grid lines for design guidance
       if (canvas.width && canvas.height) {
-        const gridSize = 50;
+        const gridSize = 25;
         for (let i = 0; i < canvas.width; i += gridSize) {
           canvas.add(
             new fabric.Line([i, 0, i, canvas.height], {
@@ -342,7 +342,7 @@ export function EditorPanel({
           <canvas
             ref={canvasRef}
             className="w-full"
-            style={{ maxHeight: "400px" }}
+            style={{ maxHeight: "420px" }}
           />
         </div>
 
